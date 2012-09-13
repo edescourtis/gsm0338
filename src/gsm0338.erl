@@ -26,16 +26,16 @@
 %% API
 %% -------------------------------------------------------------------------
 
--spec from_utf8(binary()) -> binary() | {error, binary(), RestData :: binary()}
+-spec from_utf8(binary()) -> {utf8, binary()} | {gsm, binary()} | {error, binary(), RestData :: binary()}
                            | {incomplete, binary(), IncompleteSeq :: binary()}.
 from_utf8(UTF8) ->
     case unicode:characters_to_list(UTF8, utf8) of
         CodePoints when is_list(CodePoints) ->
-            codepoints_to_gsm(CodePoints, []);
+            codepoints_to_gsm(CodePoints);
         {error, CodePoints, RestData} ->
-            {error, codepoints_to_gsm(CodePoints, []), RestData};
+            {error, codepoints_to_gsm(CodePoints), RestData};
         {incomplete, CodePoints, IncompleteSeq} ->
-            {incomplete, codepoints_to_gsm(CodePoints, []), IncompleteSeq}
+            {incomplete, codepoints_to_gsm(CodePoints), IncompleteSeq}
     end.
 
 -spec to_utf8(binary()) -> binary() | {error, binary(), RestData :: binary()}.
@@ -46,14 +46,18 @@ to_utf8(GSM) ->
 %% private functions
 %% -------------------------------------------------------------------------
 
-codepoints_to_gsm([], Acc) ->
-    list_to_binary(lists:reverse(Acc));
-codepoints_to_gsm([CP|Rest], Acc) ->
+codepoints_to_gsm(CodePoints) ->
+	codepoints_to_gsm(CodePoints, [], gsm).
+codepoints_to_gsm([], Acc, Encoding) ->
+    {Encoding, list_to_binary(lists:reverse(Acc))};
+codepoints_to_gsm([CP|Rest], Acc, Encoding) ->
     case gsm(CP) of
+        undefined ->
+            codepoints_to_gsm(Rest, [16#3F|Acc], utf8);
         N when N =< 16#FF ->
-            codepoints_to_gsm(Rest, [N|Acc]);
+            codepoints_to_gsm(Rest, [N|Acc], Encoding);
         N ->
-            codepoints_to_gsm(Rest, [N rem 256,N div 256|Acc])
+            codepoints_to_gsm(Rest, [N rem 256,N div 256|Acc], Encoding)
     end.
 
 gsm_to_codepoints(<<>>, Acc) ->
@@ -148,7 +152,7 @@ gsm(16#00F6) -> 16#7C;
 gsm(16#00F1) -> 16#7D;
 gsm(16#00FC) -> 16#7E;
 gsm(16#00E0) -> 16#7F;
-gsm(_)       -> 16#3F. % '?'
+gsm(_)       -> undefined. % '?'
 
 cp(16#00) -> 16#0040;
 cp(16#01) -> 16#00A3;
