@@ -53,7 +53,7 @@ codepoints_to_gsm([], Acc, Validity) ->
 codepoints_to_gsm([CP|Rest], Acc, Validity) ->
     case gsm(CP) of
         undefined ->
-            codepoints_to_gsm(Rest, [16#3F|Acc], valid);
+            codepoints_to_gsm(Rest, [16#3F|Acc],invalid);
         N when N =< 16#FF ->
             codepoints_to_gsm(Rest, [N|Acc], Validity);
         N ->
