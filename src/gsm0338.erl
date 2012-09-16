@@ -26,7 +26,7 @@
 %% API
 %% -------------------------------------------------------------------------
 
--spec from_utf8(binary()) -> {utf8, binary()} | {gsm, binary()} | {error, binary(), RestData :: binary()}
+-spec from_utf8(binary()) -> {invalid, binary()} | {valid, binary()} | {error, binary(), RestData :: binary()}
                            | {incomplete, binary(), IncompleteSeq :: binary()}.
 from_utf8(UTF8) ->
     case unicode:characters_to_list(UTF8, utf8) of
@@ -47,17 +47,17 @@ to_utf8(GSM) ->
 %% -------------------------------------------------------------------------
 
 codepoints_to_gsm(CodePoints) ->
-	codepoints_to_gsm(CodePoints, [], gsm).
-codepoints_to_gsm([], Acc, Encoding) ->
-    {Encoding, list_to_binary(lists:reverse(Acc))};
-codepoints_to_gsm([CP|Rest], Acc, Encoding) ->
+	codepoints_to_gsm(CodePoints, [], valid).
+codepoints_to_gsm([], Acc, Validity) ->
+    {Validity, list_to_binary(lists:reverse(Acc))};
+codepoints_to_gsm([CP|Rest], Acc, Validity) ->
     case gsm(CP) of
         undefined ->
-            codepoints_to_gsm(Rest, [16#3F|Acc], utf8);
+            codepoints_to_gsm(Rest, [16#3F|Acc], valid);
         N when N =< 16#FF ->
-            codepoints_to_gsm(Rest, [N|Acc], Encoding);
+            codepoints_to_gsm(Rest, [N|Acc], Validity);
         N ->
-            codepoints_to_gsm(Rest, [N rem 256,N div 256|Acc], Encoding)
+            codepoints_to_gsm(Rest, [N rem 256,N div 256|Acc], Validity)
     end.
 
 gsm_to_codepoints(<<>>, Acc) ->

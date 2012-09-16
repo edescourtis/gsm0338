@@ -46,7 +46,7 @@ to_utf8_empty_test() ->
     ?assertEqual(<<>>, gsm0338:to_utf8(<<>>)).
 
 from_utf8_empty_test() ->
-    ?assertEqual(<<>>, gsm0338:from_utf8(<<>>)).
+    ?assertEqual({valid, <<>>}, gsm0338:from_utf8(<<>>)).
 
 to_utf8_valid_test() ->
     lists:foreach(fun({GSM0338, UTF8}) ->
@@ -56,6 +56,6 @@ to_utf8_valid_test() ->
 
 from_utf8_valid_test() ->
     lists:foreach(fun({GSM0338, UTF8}) ->
-                ?assertEqual(list_to_binary(GSM0338),
+                ?assertEqual({valid, list_to_binary(GSM0338)},
                              gsm0338:from_utf8(unicode:characters_to_binary(UTF8)))
                   end, ?MAPPING).
