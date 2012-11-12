@@ -1,4 +1,4 @@
-%%% Copyright (c) 2011 Aleksey Yeschenko <aleksey@yeschenko.com>
+%%% Copyright (c) 2012 Eric des Courtis <eric.des.courtis@gmail.com>
 %%%
 %%% Permission is hereby granted, free of charge, to any person obtaining a copy
 %%% of this software and associated documentation files (the "Software"), to deal
@@ -18,61 +18,17 @@
 %%% OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 %%% THE SOFTWARE.
 
--module(gsm0338).
 
--export([from_utf8/1, to_utf8/1]).
+-module(gsm0338_basic).
+-behaviour(gen_gsm0338).
 
-%% -------------------------------------------------------------------------
-%% API
-%% -------------------------------------------------------------------------
+-export([gsm/1, cp/1, cp_ext/1, to_utf8/1, from_utf8/1]).
 
--spec from_utf8(binary()) -> {invalid, binary()} | {valid, binary()} | {error, binary(), RestData :: binary()}
-                           | {incomplete, binary(), IncompleteSeq :: binary()}.
+to_utf8(Binary) ->
+    gen_gsm0338:to_utf8(?MODULE, Binary).
+
 from_utf8(UTF8) ->
-    case unicode:characters_to_list(UTF8, utf8) of
-        CodePoints when is_list(CodePoints) ->
-            codepoints_to_gsm(CodePoints);
-        {error, CodePoints, RestData} ->
-            {error, codepoints_to_gsm(CodePoints), RestData};
-        {incomplete, CodePoints, IncompleteSeq} ->
-            {incomplete, codepoints_to_gsm(CodePoints), IncompleteSeq}
-    end.
-
--spec to_utf8(binary()) -> binary() | {error, binary(), RestData :: binary()}.
-to_utf8(GSM) ->
-    gsm_to_codepoints(GSM, []).
-
-%% -------------------------------------------------------------------------
-%% private functions
-%% -------------------------------------------------------------------------
-
-codepoints_to_gsm(CodePoints) ->
-	codepoints_to_gsm(CodePoints, [], valid).
-codepoints_to_gsm([], Acc, Validity) ->
-    {Validity, list_to_binary(lists:reverse(Acc))};
-codepoints_to_gsm([CP|Rest], Acc, Validity) ->
-    case gsm(CP) of
-        undefined ->
-            codepoints_to_gsm(Rest, [16#3F|Acc],invalid);
-        N when N =< 16#FF ->
-            codepoints_to_gsm(Rest, [N|Acc], Validity);
-        N ->
-            codepoints_to_gsm(Rest, [N rem 256,N div 256|Acc], Validity)
-    end.
-
-gsm_to_codepoints(<<>>, Acc) ->
-    unicode:characters_to_binary(lists:reverse(Acc), utf8);
-gsm_to_codepoints(<<C, _/binary>> = GSM, Acc) when C > 16#7F ->
-    {error, gsm_to_codepoints(<<>>, Acc), GSM};
-gsm_to_codepoints(<<16#1B, Ext, Rest/binary>>, Acc) ->
-    case cp_ext(Ext) of
-        undefined ->
-            gsm_to_codepoints(<<Ext, Rest/binary>>, [cp(16#1B)|Acc]);
-        CP ->
-            gsm_to_codepoints(Rest, [CP|Acc])
-    end;
-gsm_to_codepoints(<<C, Rest/binary>>, Acc) ->
-    gsm_to_codepoints(Rest, [cp(C)|Acc]).
+    gen_gsm0338:from_utf8(?MODULE, UTF8).
 
 gsm(16#0040) -> 16#00;
 gsm(16#00A3) -> 16#01;
